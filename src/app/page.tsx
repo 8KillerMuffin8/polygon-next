@@ -52,7 +52,6 @@ const FindGush = ({}: Props) => {
   const [showTable, setShowTable] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showTableHeader, setShowTableHeader] = useState(false);
-  const [numOfPages, setNumOfPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
 
   const handleClick = async () => {
@@ -162,9 +161,6 @@ const FindGush = ({}: Props) => {
           </>
         )}
       </div>
-        {/* <motion.div style={{pointerEvents: loading ? 'auto' : 'none'}} animate={{opacity: loading ? 1 : 0}} className={`absolute flex w-full h-full bg-[#ffffff80] justify-center items-center`}>
-          <Lottie animationData={Gears} className="w-52 h-52"/>
-        </motion.div> */}
     </div>
   );
 };
