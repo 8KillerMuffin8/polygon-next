@@ -8,6 +8,7 @@ type Data = {
   success: boolean;
   data?: any;
   error?: any;
+  stackTrace?: any
 };
 
 export default async function handler(
@@ -15,17 +16,15 @@ export default async function handler(
   res: NextApiResponse<Data>
 ) {
   const { gush_num } = req.query;
-  const URL = "185.32.178.53";
-  const USER = "ubuntu";
-  const PASSWORD = "0315";
   const CONNECTION_LIMIT = 5;
+
 
   let conn;
   try {
     const pool = mariadb.createPool({
-      host: URL,
-      user: USER,
-      password: PASSWORD,
+      host: process.env.DB_URL,
+      user: process.env.DB_USER,
+      password: process.env.PASSWORD,
       connectionLimit: CONNECTION_LIMIT,
     });
     conn = await pool.getConnection();
@@ -35,7 +34,7 @@ export default async function handler(
     );
 
     if (!gushim) {
-      res.status(400).json({ success: false, error: "gush not found" });
+      res.status(200).json({ success: true, error: "gush not found", data: [] });
     }
 
     const gpsdata = await conn.query(
@@ -45,8 +44,12 @@ export default async function handler(
     const newPoly: any[] = [];
 
     JSON.parse(gushim[0].geometry_coordinates)[0][0].map((pt: any) => {
-      const { lat, long } = itm.ITMtoWGS84(pt[0], pt[1]);
-      newPoly.push([lat, long]);
+      if(pt[0] > 100){
+        const { lat, long } = itm.ITMtoWGS84(pt[0], pt[1]);
+        newPoly.push([lat, long]);
+      } else {
+        newPoly.push([pt[1], pt[0]])
+      }
     });
 
     const imgArr: any[] = [];
@@ -60,9 +63,12 @@ export default async function handler(
         imgArr.push(pt.SourceFile);
       }
     });
-
+    if(imgArr.length === 0){
+      res.status(200).json({success: true, data: []})
+      return;
+    }
     const baseq = `SELECT SourceFile,GPSLatitude,GPSLongitude,DateTimeOriginal,target from aviation.gpsdata where SourceFile in(${imgArr.map(
-      (img, i) => `'${img}'`
+      (img) => `'${img}'`
     )})`;
     const imgData = await conn.query(baseq);
 
@@ -70,7 +76,7 @@ export default async function handler(
   } catch (err) {
     res
       .status(500)
-      .json({ success: false, data: null, error: "Internal server error" });
+      .json({ success: false, data: null, error: err});
   } finally {
     if (conn) {
       conn.end();
