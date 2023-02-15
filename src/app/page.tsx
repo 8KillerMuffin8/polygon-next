@@ -1,4 +1,10 @@
 "use client";
+import ActionButton from "@/components/ActionButton";
+import ExportModal from "@/components/ExportModal";
+import Paginator from "@/components/Paginator";
+import TableHeader from "@/components/TableHeader";
+import { TableItem, TableItemProps } from "@/components/TableItem";
+import { MAX_ITEMS_IN_PAGE, MAX_PAGES } from "@/utils/constants";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { toast, Toaster } from "react-hot-toast";
@@ -16,36 +22,6 @@ async function getData(gush_num: string) {
   }
 }
 
-interface TableItemProps {
-  SourceFile: string;
-  GPSLongitude: string;
-  GPSLatitude: string;
-  DateTimeOriginal: string;
-  target?: string;
-}
-
-const TableItem = ({ item }: { item: TableItemProps }) => {
-  const { SourceFile, GPSLatitude, GPSLongitude, DateTimeOriginal, target } =
-    item;
-  return (
-    <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-      <th
-        scope="row"
-        className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-      >
-        {SourceFile}
-      </th>
-      <td className="px-6 py-4">{GPSLatitude}</td>
-      <td className="px-6 py-4">{GPSLongitude}</td>
-      <td className="px-6 py-4">{DateTimeOriginal}</td>
-      <td className="px-6 py-4">{target || "null"}</td>
-    </tr>
-  );
-};
-
-const MAX_ITEMS_IN_PAGE = 5;
-const MAX_PAGES = 10;
-
 const FindGush = ({}: Props) => {
   const [gushInput, setGushInput] = useState("");
   const [result, setResult] = useState<TableItemProps[]>([]);
@@ -53,25 +29,26 @@ const FindGush = ({}: Props) => {
   const [loading, setLoading] = useState(false);
   const [showTableHeader, setShowTableHeader] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const handleClick = async () => {
+  const handleSearch = async () => {
     handleClear();
     setLoading(true);
-    try{
-      const toastId = toast.loading('Loading...')
+    try {
+      const toastId = toast.loading("Loading...");
       const data = await getData(gushInput);
-      if(data.data && data.success){
-        toast.success("Success", {id: toastId, duration: 2000})
+      if (data.data && data.success) {
+        toast.success("Success", { id: toastId, duration: 2000 });
         setShowTable(true);
         setShowTableHeader(true);
         setResult(data.data);
       } else {
-        toast.error("Error", {id: toastId, duration: 2000})
+        toast.error("Error", { id: toastId, duration: 2000 });
         setShowTable(false);
         setResult([]);
       }
-    } catch (err){
-      console.error(err)
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -83,16 +60,30 @@ const FindGush = ({}: Props) => {
     timeout = setTimeout(() => {
       setResult([]);
     }, 500);
-    clearTimeout(timeout)
+    clearTimeout(timeout);
+  };
+
+  const handleExport = () => {
+    setModalOpen(true);
   };
 
   const handlePageClicked = (pageIndex: number) => {
-      setCurrentPage(pageIndex);
-  }
+    setCurrentPage(pageIndex);
+  };
 
   return (
-    <div className={"w-screen h-screen flex justify-center items-center overflow-x-hidden lg:overflow-y-hidden p-12 max-h-screen"}>
+    <div
+      className={
+        "w-screen h-screen flex justify-center items-center overflow-x-hidden lg:overflow-y-hidden p-12 max-h-screen"
+      }
+    >
       <Toaster />
+      <ExportModal
+        modalOpen={modalOpen}
+        setModalOpen={setModalOpen}
+        data={result}
+        fileName={`gush_${gushInput}`}
+      />
       <div className={"flex flex-col justify-center items-center gap-4"}>
         <label className={"text-white text-2xl"}>Gush num</label>
         <input
@@ -101,9 +92,7 @@ const FindGush = ({}: Props) => {
           value={gushInput}
           onChange={(e) => setGushInput(e.target.value)}
         ></input>
-        <button onClick={handleClick}>
-          <div className={"bg-white rounded-lg px-4 py-2"}>Search</div>
-        </button>
+        <ActionButton onPress={handleSearch} label="Search" />
         <motion.div
           className="overflow-x-auto relative overflow-hidden"
           animate={{
@@ -112,52 +101,36 @@ const FindGush = ({}: Props) => {
           transition={{ type: "linear" }}
         >
           <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-          {showTableHeader && (
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                        <tr>
-                          <th scope="col" className="px-6 py-3">
-                            Source file
-                          </th>
-                          <th scope="col" className="px-6 py-3">
-                            Latitude
-                          </th>
-                          <th scope="col" className="px-6 py-3">
-                            Longitude
-                          </th>
-                          <th scope="col" className="px-6 py-3">
-                            Date
-                          </th>
-                          <th scope="col" className="px-6 py-3">
-                            Target
-                          </th>
-                        </tr>
-                      </thead>
-          )}
+            {showTableHeader && <TableHeader />}
             {result && (
               <tbody>
-                {result.slice(MAX_ITEMS_IN_PAGE * (currentPage - 1), MAX_ITEMS_IN_PAGE * currentPage).map((item, i) => (
-                  <TableItem item={item} key={i.toString()} />
-                ))}
+                {result
+                  .slice(
+                    MAX_ITEMS_IN_PAGE * (currentPage - 1),
+                    MAX_ITEMS_IN_PAGE * currentPage
+                  )
+                  .map((item, i) => (
+                    <TableItem item={item} key={i.toString()} />
+                  ))}
               </tbody>
             )}
           </table>
         </motion.div>
         {showTable && (
           <>
-        <button onClick={handleClear} className="bg-white p-2 rounded-lg px-4">
-          <div className="self-center">Clear</div>
-        </button>
-        <p>{`Number of items: ${result.length}`}</p>
-        {result.length > 5 && <div className="flex flex-row">
-        {Array(Math.ceil(result.length / MAX_ITEMS_IN_PAGE)).fill(0).slice(0, MAX_PAGES).map((_, i) => {
-          return (
-            <button onClick={() => {
-              handlePageClicked(i + 1)
-            }} className={`border border-t-0 border-b-0 border-black p-2 px-4 hover:bg-slate-50 ${currentPage - 1 === i ? "bg-slate-50" : 'bg-slate-300'} transition-all`} key={i.toString()}>{i + 1}</button>
-            )
-          })}
-          </div>
-}
+            <div className="flex flex-row gap-4">
+              <ActionButton onPress={handleClear} label="Clear" />
+              <ActionButton onPress={handleExport} label="Export" />
+            </div>
+            <p>{`Number of items: ${result.length}`}</p>
+            <Paginator
+              handlePageClicked={handlePageClicked}
+              numOfPages={Math.min(
+                MAX_PAGES,
+                result.length / MAX_ITEMS_IN_PAGE
+              )}
+              currentPage={currentPage}
+            />
           </>
         )}
       </div>
