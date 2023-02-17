@@ -1,3 +1,4 @@
+import moment from 'moment';
 import React from 'react'
 
 export interface TableItemProps {
@@ -21,7 +22,7 @@ export const TableItem = ({ item }: { item: TableItemProps }) => {
         </th>
         <td className="px-6 py-4">{GPSLatitude}</td>
         <td className="px-6 py-4">{GPSLongitude}</td>
-        <td className="px-6 py-4">{DateTimeOriginal}</td>
+        <td className="px-6 py-4">{moment(DateTimeOriginal).format('DD/MM/YYYY')}</td>
         <td className="px-6 py-4">{target || "null"}</td>
       </tr>
     );

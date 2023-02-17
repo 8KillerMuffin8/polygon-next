@@ -130,6 +130,7 @@ export default function ExportModal({
           className="bg-white rounded-md p-2 text-center"
           data={_data}
           filename={fileName}
+          enclosingCharacter=""
         >
           Export
         </CSVLink>
