@@ -12,8 +12,8 @@ type Data = {
 };
 
 type Coordinate = {
-    lat: number;
-    long: number;
+    Latitude: number;
+    Longitude: number;
 }
 
 export default async function handler(
@@ -47,10 +47,13 @@ export default async function handler(
 
     const coordArr: Coordinate[] = JSON.parse(coordinates as string);
     coordArr!.map((coord: Coordinate) => {
-        console.log(coord);
+        if(coord.Latitude > 100){
+        const { lat, long } = itm.ITMtoWGS84(coord.Latitude, coord.Longitude);
+        newPoly.push([lat, long]);
+      } else {
+        newPoly.push([coord.Longitude, coord.Latitude])
+      }
     })
-
-    res.status(200).json({success: true, data: JSON.stringify(coordArr)})
 
     // JSON.parse(gushim[0].geometry_coordinates)[0][0].map((pt: any) => {
     //   if(pt[0] > 100){
@@ -61,27 +64,27 @@ export default async function handler(
     //   }
     // });
 
-    // const imgArr: any[] = [];
+    const imgArr: any[] = [];
 
-    // const poly = turf.polygon([newPoly]);
+    const poly = turf.polygon([newPoly]);
 
-    // gpsdata.map((pt: any) => {
-    //   const point = turf.point([pt.GPSLatitude, pt.GPSLongitude]);
-    //   const contains = booleanPointInPolygon(point, poly);
-    //   if (contains) {
-    //     imgArr.push(pt.SourceFile);
-    //   }
-    // });
-    // if(imgArr.length === 0){
-    //   res.status(200).json({success: true, data: []})
-    //   return;
-    // }
-    // const baseq = `SELECT SourceFile,GPSLatitude,GPSLongitude,DateTimeOriginal,target from aviation.gpsdata where SourceFile in(${imgArr.map(
-    //   (img) => `'${img}'`
-    // )})`;
-    // const imgData = await conn.query(baseq);
+    gpsdata.map((pt: any) => {
+      const point = turf.point([pt.GPSLatitude, pt.GPSLongitude]);
+      const contains = booleanPointInPolygon(point, poly);
+      if (contains) {
+        imgArr.push(pt.SourceFile);
+      }
+    });
+    if(imgArr.length === 0){
+      res.status(200).json({success: true, data: []})
+      return;
+    }
+    const baseq = `SELECT SourceFile,GPSLatitude,GPSLongitude,DateTimeOriginal,target from aviation.gpsdata where SourceFile in(${imgArr.map(
+      (img) => `'${img}'`
+    )})`;
+    const imgData = await conn.query(baseq);
 
-    // res.status(200).json({ success: true, data: imgData });
+    res.status(200).json({ success: true, data: imgData });
   } catch (err) {
     res
       .status(500)

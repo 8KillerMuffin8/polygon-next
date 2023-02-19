@@ -2,6 +2,7 @@
 import ActionButton from "@/components/ActionButton";
 import { CoordItem } from "@/components/CoordItem";
 import ExportModal from "@/components/ExportModal";
+import InputStringModal from "@/components/InputStringModal";
 import Paginator from "@/components/Paginator";
 import TableHeader from "@/components/TableHeader";
 import { TableItem, TableItemProps } from "@/components/TableItem";
@@ -37,8 +38,8 @@ async function getDataByCoords(coords: Coordinate[]) {
 }
 
 export type Coordinate = {
-  Latitude: number;
-  Longitude: number;
+  Latitude: number | string;
+  Longitude: number | string;
 };
 
 const FindGush = ({}: Props) => {
@@ -49,6 +50,7 @@ const FindGush = ({}: Props) => {
   const [showTableHeader, setShowTableHeader] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
+  const [inputStringModalOpen, setInputStringModalOpen] = useState(false);
   const [inputMethod, setInputMethod] = useState<"coordinates" | "gush">(
     "coordinates"
   );
@@ -89,9 +91,14 @@ const FindGush = ({}: Props) => {
         console.log(data)
         if (data.data && data.success) {
           toast.success("Success", { id: toastId, duration: 2000 });
+          setShowTable(true);
+          setShowTableHeader(true);
+          setResult(data.data);
 
         } else {
           toast.error("Error", { id: toastId, duration: 2000 });
+          setShowTable(false);
+          setResult([]);        
         }
       }
     } catch (err) {
@@ -113,6 +120,10 @@ const FindGush = ({}: Props) => {
   const handleExport = () => {
     setModalOpen(true);
   };
+  
+  const openInputStringModal = () => {
+    setInputStringModalOpen(true);
+  }
 
   const handlePageClicked = (pageIndex: number) => {
     setCurrentPage(pageIndex);
@@ -121,6 +132,24 @@ const FindGush = ({}: Props) => {
   const handleAddCoordinate = () => {
     setCoordinates((old) => [...old, { Latitude: 0, Longitude: 0 }]);
   };
+
+  const handleApplyCoordinates = (str: string) => {
+    const newCoordinates: Coordinate[] = [];
+    try{
+      const inputArr = JSON.parse(str).flat(2);
+      inputArr.map((item: any) => {
+        newCoordinates.push({
+          Latitude: item[0],
+          Longitude: item[1]
+        })
+      })
+      setCoordinates(newCoordinates)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setInputStringModalOpen(false);
+    }
+  }
 
   const handleDeleteItem = (index: number) => {
     let newCoordinates = coordinates;
@@ -136,7 +165,7 @@ const FindGush = ({}: Props) => {
     let newCoordinates = [...coordinates];
     newCoordinates[index] = {
       ...newCoordinates[index],
-      [type]: parseFloat(e.target.value) || 0,
+      [type]: e.target.value,
     };
     setCoordinates(newCoordinates);
   };
@@ -144,7 +173,7 @@ const FindGush = ({}: Props) => {
   return (
     <div
       className={
-        "w-screen h-screen flex justify-center items-center overflow-x-hidden lg:overflow-y-hidden p-12 max-h-screen"
+        "flex justify-center items-center p-12 min-height=screen"
       }
     >
       <Toaster />
@@ -153,6 +182,11 @@ const FindGush = ({}: Props) => {
         setModalOpen={setModalOpen}
         data={result}
         fileName={`gush_${gushInput}`}
+      />
+      <InputStringModal 
+      modalOpen={inputStringModalOpen}
+      setModalOpen={setInputStringModalOpen}
+      handleApply={handleApplyCoordinates}
       />
       <div className={"flex flex-col justify-center items-center gap-4"}>
         <label className={"text-white text-2xl"}>
@@ -174,6 +208,7 @@ const FindGush = ({}: Props) => {
           </>
         ) : (
           <div>
+            <div className="max-h-24 overflow-auto">
             {coordinates.map((coord, index) => {
               return (
                 <CoordItem
@@ -185,6 +220,7 @@ const FindGush = ({}: Props) => {
                 />
               );
             })}
+            </div>
             <button
               onClick={handleAddCoordinate}
               className="flex bg-slate-600 w-full justify-between mt-2 p-2 text-white"
@@ -194,7 +230,10 @@ const FindGush = ({}: Props) => {
             </button>
           </div>
         )}
+        <div className="flex flex-row gap-3">
         <ActionButton onPress={handleSearch} label="Search" />
+        {inputMethod === 'coordinates' && <ActionButton onPress={openInputStringModal} label="Input string"/>}
+        </div>
         <button
           onClick={() =>
             setInputMethod((old) =>
