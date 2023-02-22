@@ -1,15 +1,16 @@
 "use client";
 import ActionButton from "@/components/ActionButton";
 import { CoordItem } from "@/components/CoordItem";
+import ErrorToast from "@/components/ErrorToast";
 import ExportModal from "@/components/ExportModal";
 import InputStringModal from "@/components/InputStringModal";
 import Paginator from "@/components/Paginator";
 import TableHeader from "@/components/TableHeader";
 import { TableItem, TableItemProps } from "@/components/TableItem";
 import { MAX_ITEMS_IN_PAGE, MAX_PAGES } from "@/utils/constants";
-import { PlusIcon } from "@heroicons/react/24/solid";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast, Toaster } from "react-hot-toast";
 
 type Props = {};
@@ -28,7 +29,6 @@ async function getData(gush_num: string) {
 async function getDataByCoords(coords: Coordinate[]) {
   try {
     const res = await fetch(`/api/coordinates/${JSON.stringify(coords)}`);
-    console.log(res);
     const json = await res.json();
     return json;
   } catch (err) {
@@ -52,7 +52,7 @@ const FindGush = ({}: Props) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [inputStringModalOpen, setInputStringModalOpen] = useState(false);
   const [inputMethod, setInputMethod] = useState<"coordinates" | "gush">(
-    "coordinates"
+    "gush"
   );
   const [coordinates, setCoordinates] = useState<Coordinate[]>([
     {
@@ -72,8 +72,8 @@ const FindGush = ({}: Props) => {
   const handleSearch = async () => {
     handleClear();
     setLoading(true);
+    const toastId = toast.loading("Loading...");
     try {
-      const toastId = toast.loading("Loading...");
       if(inputMethod === 'gush') {
         const data = await getData(gushInput);
         if (data.data && data.success) {
@@ -82,27 +82,31 @@ const FindGush = ({}: Props) => {
           setShowTableHeader(true);
           setResult(data.data);
         } else {
-          toast.error("Error", { id: toastId, duration: 2000 });
+          toast.dismiss(toastId)
+          toast((t) => <ErrorToast t={t} toast={toast} error={data.error}/>
+          , {duration: Infinity});  
+          console.error(data);             
           setShowTable(false);
           setResult([]);
         }
       } else {
         const data = await getDataByCoords(coordinates);
-        console.log(data)
         if (data.data && data.success) {
           toast.success("Success", { id: toastId, duration: 2000 });
           setShowTable(true);
           setShowTableHeader(true);
           setResult(data.data);
 
-        } else {
-          toast.error("Error", { id: toastId, duration: 2000 });
+        } else {   
+          toast.dismiss(toastId)
+          toast((t) => <ErrorToast t={t} toast={toast} error={data.error}/>
+          , {duration: Infinity});  
+          console.error(data.error);             
           setShowTable(false);
           setResult([]);        
         }
       }
     } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -133,10 +137,20 @@ const FindGush = ({}: Props) => {
     setCoordinates((old) => [...old, { Latitude: 0, Longitude: 0 }]);
   };
 
+  // This is very silly.
+  const flat = (arr: any[]) => {
+    const str = JSON.stringify(arr);
+    let indexOfLastBrace = 0;
+    while(str[indexOfLastBrace] === '[') {
+      indexOfLastBrace += 1;
+    }
+    return JSON.parse(str).flat(indexOfLastBrace - 2 > 0 ? indexOfLastBrace - 2 : 0);
+  }
+
   const handleApplyCoordinates = (str: string) => {
     const newCoordinates: Coordinate[] = [];
     try{
-      const inputArr = JSON.parse(str).flat(2);
+      const inputArr = flat(JSON.parse(str));
       inputArr.map((item: any) => {
         newCoordinates.push({
           Latitude: item[0],
@@ -154,7 +168,6 @@ const FindGush = ({}: Props) => {
   const handleDeleteItem = (index: number) => {
     let newCoordinates = coordinates;
     newCoordinates = newCoordinates.filter((_, i) => i !== index);
-    console.log(coordinates, newCoordinates, index);
     setCoordinates(newCoordinates);
   };
   const handleChange = (

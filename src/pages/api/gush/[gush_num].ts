@@ -3,6 +3,8 @@ import * as mariadb from "mariadb";
 import * as turf from "turf";
 import * as itm from "itm-wgs84";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
+import { QUERIES } from "@/utils";
+import { getImgData } from "@/utils/getImgData";
 
 type Data = {
   success: boolean;
@@ -18,7 +20,6 @@ export default async function handler(
   const { gush_num } = req.query;
   const CONNECTION_LIMIT = 5;
 
-
   let conn;
   try {
     const pool = mariadb.createPool({
@@ -30,15 +31,15 @@ export default async function handler(
     conn = await pool.getConnection();
 
     const gushim = await conn.query(
-      `SELECT * from aviation.gushim where GUSH_NUM=${gush_num}`
+      `${QUERIES.GUSHIM}${gush_num}`
     );
 
-    if (!gushim) {
-      res.status(200).json({ success: true, error: "gush not found", data: [] });
+    if (!gushim[0]) {
+      res.status(200).json({ success: false, error: "gush not found", data: [] });
     }
 
     const gpsdata = await conn.query(
-      "SELECT SourceFile,GPSLatitude,GPSLongitude from aviation.gpsdata"
+      QUERIES.GPSDATA
     );
 
     const newPoly: any[] = [];
@@ -52,31 +53,13 @@ export default async function handler(
       }
     });
 
-    const imgArr: any[] = [];
-
-    const poly = turf.polygon([newPoly]);
-
-    gpsdata.map((pt: any) => {
-      const point = turf.point([pt.GPSLatitude, pt.GPSLongitude]);
-      const contains = booleanPointInPolygon(point, poly);
-      if (contains) {
-        imgArr.push(pt.SourceFile);
-      }
-    });
-    if(imgArr.length === 0){
-      res.status(200).json({success: true, data: []})
-      return;
-    }
-    const baseq = `SELECT SourceFile,GPSLatitude,GPSLongitude,DateTimeOriginal,target from aviation.gpsdata where SourceFile in(${imgArr.map(
-      (img) => `'${img}'`
-    )})`;
-    const imgData = await conn.query(baseq);
+    const imgData = await getImgData(newPoly, gpsdata, conn)
 
     res.status(200).json({ success: true, data: imgData });
   } catch (err) {
     res
       .status(500)
-      .json({ success: false, data: null, error: err});
+      .json({ success: false, data: null, error: err instanceof Error && err.message});
   } finally {
     if (conn) {
       conn.end();

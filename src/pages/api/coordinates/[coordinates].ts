@@ -3,6 +3,8 @@ import * as mariadb from "mariadb";
 import * as turf from "turf";
 import * as itm from "itm-wgs84";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
+import { QUERIES } from "@/utils";
+import { getImgData } from "@/utils/getImgData";
 
 type Data = {
   success: boolean;
@@ -23,7 +25,6 @@ export default async function handler(
   const { coordinates } = req.query;
   const CONNECTION_LIMIT = 5;
 
-
   let conn;
   try {
     const pool = mariadb.createPool({
@@ -35,7 +36,7 @@ export default async function handler(
     conn = await pool.getConnection();
 
     const gpsdata = await conn.query(
-      "SELECT SourceFile,GPSLatitude,GPSLongitude from aviation.gpsdata"
+      QUERIES.GPSDATA
     );
 
     if(!coordinates){
@@ -46,6 +47,7 @@ export default async function handler(
     const newPoly: any[] = [];
 
     const coordArr: Coordinate[] = JSON.parse(coordinates as string);
+
     coordArr!.map((coord: Coordinate) => {
         if(coord.Latitude > 100){
         const { lat, long } = itm.ITMtoWGS84(coord.Latitude, coord.Longitude);
@@ -55,40 +57,13 @@ export default async function handler(
       }
     })
 
-    // JSON.parse(gushim[0].geometry_coordinates)[0][0].map((pt: any) => {
-    //   if(pt[0] > 100){
-    //     const { lat, long } = itm.ITMtoWGS84(pt[0], pt[1]);
-    //     newPoly.push([lat, long]);
-    //   } else {
-    //     newPoly.push([pt[1], pt[0]])
-    //   }
-    // });
-
-    const imgArr: any[] = [];
-
-    const poly = turf.polygon([newPoly]);
-
-    gpsdata.map((pt: any) => {
-      const point = turf.point([pt.GPSLatitude, pt.GPSLongitude]);
-      const contains = booleanPointInPolygon(point, poly);
-      if (contains) {
-        imgArr.push(pt.SourceFile);
-      }
-    });
-    if(imgArr.length === 0){
-      res.status(200).json({success: true, data: []})
-      return;
-    }
-    const baseq = `SELECT SourceFile,GPSLatitude,GPSLongitude,DateTimeOriginal,target from aviation.gpsdata where SourceFile in(${imgArr.map(
-      (img) => `'${img}'`
-    )})`;
-    const imgData = await conn.query(baseq);
+    const imgData = await getImgData(newPoly, gpsdata, conn)
 
     res.status(200).json({ success: true, data: imgData });
   } catch (err) {
     res
       .status(500)
-      .json({ success: false, data: null, error: err});
+      .json({ success: false, data: null, error: err instanceof Error && err.message});
   } finally {
     if (conn) {
       conn.end();
