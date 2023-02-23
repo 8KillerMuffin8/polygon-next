@@ -344,7 +344,7 @@ const FindGush = ({}: Props) => {
               <ActionButton onPress={handleExport} label="Export" />
             </div>
             <p>{`Number of items: ${result.length}`}</p>
-            {JSON.stringify(result, null, 2)}
+            {/* {JSON.stringify(result, null, 2)} */}
             <Paginator
               handlePageClicked={handlePageClicked}
               numOfPages={Math.min(
