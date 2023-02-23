@@ -5,6 +5,7 @@ import * as itm from "itm-wgs84";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { QUERIES } from "@/utils";
 import { getImgData } from "@/utils/getImgData";
+import { getGpsData } from "@/utils/getGpsData";
 
 type Data = {
   success: boolean;
@@ -38,9 +39,7 @@ export default async function handler(
       res.status(200).json({ success: false, error: "gush not found", data: [] });
     }
 
-    const gpsdata = await conn.query(
-      QUERIES.GPSDATA
-    );
+    const gpsdata = await getGpsData(conn);
 
     const newPoly: any[] = [];
 
