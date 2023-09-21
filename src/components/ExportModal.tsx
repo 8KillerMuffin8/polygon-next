@@ -21,8 +21,14 @@ export default function ExportModal({
     sourceFile: true,
     lat: true,
     long: true,
+    alt: true,
     date: true,
     target: true,
+    imu_roll: true,
+    imu_pitch: true,
+    imu_yaw: true,
+    resolution: true,
+    client: true
   });
 
   const [_data, _setData] = useState(data);
@@ -49,6 +55,21 @@ export default function ExportModal({
       }
       if (exportHeaders.target) {
         ret["target"] = item.target;
+      }
+      if (exportHeaders.imu_roll) {
+        ret["imu_roll"] = item.IMURoll;
+      }
+      if (exportHeaders.imu_pitch) {
+        ret["imu_pitch"] = item.IMUPitch;
+      }
+      if (exportHeaders.imu_yaw) {
+        ret["imu_yaw"] = item.IMUYaw;
+      }
+      if (exportHeaders.resolution) {
+        ret["resolution"] = item.resolution;
+      }
+      if (exportHeaders.client) {
+        ret["client"] = item.Client;
       }
       return ret;
     });
@@ -89,41 +110,19 @@ export default function ExportModal({
           </button>
         </div>
         <div className="flex flex-col text-white">
-          <CheckBox
-            label="Source file"
-            checked={exportHeaders.sourceFile}
-            setChecked={(newValue) =>
-              setExportHeaders({ ...exportHeaders, sourceFile: newValue })
-            }
-          />
-          <CheckBox
-            label="Latitude"
-            checked={exportHeaders.lat}
-            setChecked={(newValue) =>
-              setExportHeaders({ ...exportHeaders, lat: newValue })
-            }
-          />
-          <CheckBox
-            label="Longitude"
-            checked={exportHeaders.long}
-            setChecked={(newValue) =>
-              setExportHeaders({ ...exportHeaders, long: newValue })
-            }
-          />
-          <CheckBox
-            label="Date"
-            checked={exportHeaders.date}
-            setChecked={(newValue) =>
-              setExportHeaders({ ...exportHeaders, date: newValue })
-            }
-          />
-          <CheckBox
-            label="Target"
-            checked={exportHeaders.target}
-            setChecked={(newValue) =>
-              setExportHeaders({ ...exportHeaders, target: newValue })
-            }
-          />
+          {Object.entries(exportHeaders).map(([key, value]) => {
+            return (
+              <CheckBox
+                key={key}
+                label={key}
+                checked={value}
+                setChecked={(newValue) =>
+                  setExportHeaders({ ...exportHeaders, [key]: newValue })
+                }
+              />
+            );
+          })}
+
         </div>
 
         <CSVLink

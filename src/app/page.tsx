@@ -239,7 +239,7 @@ const FindGush = ({}: Props) => {
         modalOpen={modalOpen}
         setModalOpen={setModalOpen}
         data={result}
-        fileName={`gush_${gushInput}`}
+        fileName={`gush_${gushInput.slice(0, 10)}`}
       />
       <InputStringModal 
       modalOpen={inputStringModalOpen}
