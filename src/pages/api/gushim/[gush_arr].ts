@@ -1,11 +1,9 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import * as mariadb from "mariadb";
-import * as turf from "turf";
-import * as itm from "itm-wgs84";
-import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { QUERIES } from "@/utils";
-import { getImgData } from "@/utils/getImgData";
 import { getGpsData } from "@/utils/getGpsData";
+import { getImgData } from "@/utils/getImgData";
+import * as itm from "itm-wgs84";
+import * as mariadb from "mariadb";
+import type { NextApiRequest, NextApiResponse } from "next";
 
 type Data = {
   success: boolean;
@@ -61,23 +59,23 @@ export default async function handler(
       });
     });
 
-    const imgData = await Promise.allSettled(polygons.map(async (poly) => {
-      const polyData = await getImgData(poly.value, gpsdata, conn);
-      return {
-        gush_data: polyData,
-        gush_num: poly.key
-      };
-    }));
+    const imgData = await Promise.allSettled(
+      polygons.map(async (poly) => {
+        const polyData = await getImgData(poly.value, gpsdata, conn);
+        return {
+          gush_data: polyData,
+          gush_num: poly.key,
+        };
+      })
+    );
 
     res.status(200).json({ success: true, data: imgData });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        data: null,
-        error: err instanceof Error && err.message,
-      });
+    res.status(500).json({
+      success: false,
+      data: null,
+      error: err instanceof Error && err.message,
+    });
   } finally {
     if (conn) {
       conn.end();

@@ -73,73 +73,71 @@ const FindGush = ({}: Props) => {
   const [gushim, setGushim] = useState<any[]>([]);
 
   const handleAddGush = (item: any) => {
-    if(item === '') return;
-    if(gushInput.includes(',')){
-      const gushArr = gushInput.split(',');
+    if (item === "") return;
+    if (gushInput.includes(",")) {
+      const gushArr = gushInput.split(",");
       let newGushim = [...gushim];
-      gushArr.map(gush => {
+      gushArr.map((gush) => {
         newGushim.push(gush);
-      })
-      newGushim = newGushim.filter((value, index, self) =>
-      index === self.findIndex((t) => (
-        t === value
-      ))
-    )
-        setGushim(newGushim);
+      });
+      newGushim = newGushim.filter(
+        (value, index, self) => index === self.findIndex((t) => t === value)
+      );
+      setGushim(newGushim);
     } else {
       const newGushim = [...gushim];
-      if(!gushim.includes(item)){
+      if (!gushim.includes(item)) {
         newGushim.push(item);
         setGushim(newGushim);
       }
     }
 
-    setGushInput("")
-  }
+    setGushInput("");
+  };
 
   const onSuccess = (toastId: any) => {
     toast.success("Success", { id: toastId, duration: 2000 });
     setShowTable(true);
     setShowTableHeader(true);
-  }
+  };
 
   const onFailure = (toastId, data) => {
-    toast.dismiss(toastId)
-    toast((t) => <ErrorToast t={t} toast={toast} error={data.error}/>
-    , {duration: Infinity});  
+    toast.dismiss(toastId);
+    toast((t) => <ErrorToast t={t} toast={toast} error={data.error} />, {
+      duration: Infinity,
+    });
     setShowTable(false);
     setResult([]);
-  }
+  };
 
   const handleSearch = async () => {
     handleClear();
     setLoading(true);
     const toastId = toast.loading("Loading...");
     try {
-      if(inputMethod === 'gush') {
+      if (inputMethod === "gush") {
         const data = await getData(gushim);
         if (data.data && data.success) {
-          onSuccess(toastId)
+          onSuccess(toastId);
           let newResult: any[] = [];
           data.data.map((gush: any) => {
-            newResult = [...newResult, ...gush.value.gush_data]
-          })
-          newResult = newResult.filter((value, index, self) =>
-          index === self.findIndex((t) => (
-            t.SourceFile === value.SourceFile
-          ))
-        )          
-        setResult(newResult);
+            newResult = [...newResult, ...gush.value.gush_data];
+          });
+          newResult = newResult.filter(
+            (value, index, self) =>
+              index === self.findIndex((t) => t.SourceFile === value.SourceFile)
+          );
+          setResult(newResult);
         } else {
-          onFailure(toastId, data)
+          onFailure(toastId, data);
         }
       } else {
         const data = await getDataByCoords(coordinates);
         if (data.data && data.success) {
-          onSuccess(toastId)
+          onSuccess(toastId);
           setResult(data.data);
-        } else {   
-          onFailure(toastId, data)
+        } else {
+          onFailure(toastId, data);
         }
       }
     } catch (err) {
@@ -155,10 +153,10 @@ const FindGush = ({}: Props) => {
   const handleExport = () => {
     setModalOpen(true);
   };
-  
+
   const openInputStringModal = () => {
     setInputStringModalOpen(true);
-  }
+  };
 
   const handlePageClicked = (pageIndex: number) => {
     setCurrentPage(pageIndex);
@@ -172,36 +170,38 @@ const FindGush = ({}: Props) => {
   const flat = (arr: any[]) => {
     const str = JSON.stringify(arr);
     let indexOfLastBrace = 0;
-    while(str[indexOfLastBrace] === '[') {
+    while (str[indexOfLastBrace] === "[") {
       indexOfLastBrace += 1;
     }
-    return JSON.parse(str).flat(indexOfLastBrace - 2 > 0 ? indexOfLastBrace - 2 : 0);
-  }
+    return JSON.parse(str).flat(
+      indexOfLastBrace - 2 > 0 ? indexOfLastBrace - 2 : 0
+    );
+  };
 
   const getArrayDepth = (value: any[]) => {
-    return Array.isArray(value) ? 
-      1 + Math.max(0, ...value.map(getArrayDepth)) :
-      0;
-  }
+    return Array.isArray(value)
+      ? 1 + Math.max(0, ...value.map(getArrayDepth))
+      : 0;
+  };
 
   const handleApplyCoordinates = (str: string) => {
     const newCoordinates: Coordinate[] = [];
-    try{
+    try {
       const parsed = JSON.parse(str);
       const inputArr = parsed.flat(getArrayDepth(parsed) - 2);
       inputArr.map((item: any) => {
         newCoordinates.push({
           Latitude: item[0],
-          Longitude: item[1]
-        })
-      })
-      setCoordinates(newCoordinates)
+          Longitude: item[1],
+        });
+      });
+      setCoordinates(newCoordinates);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     } finally {
       setInputStringModalOpen(false);
     }
-  }
+  };
 
   const handleDeleteCoordinate = (index: number) => {
     let newCoordinates = coordinates;
@@ -229,11 +229,7 @@ const FindGush = ({}: Props) => {
   };
 
   return (
-    <div
-      className={
-        "flex justify-center items-center p-12 min-height=screen"
-      }
-    >
+    <div className={"flex flex-col justify-center items-center"}>
       <Toaster />
       <ExportModal
         modalOpen={modalOpen}
@@ -241,12 +237,12 @@ const FindGush = ({}: Props) => {
         data={result}
         fileName={`gush_${gushInput.slice(0, 10)}`}
       />
-      <InputStringModal 
-      modalOpen={inputStringModalOpen}
-      setModalOpen={setInputStringModalOpen}
-      handleApply={handleApplyCoordinates}
+      <InputStringModal
+        modalOpen={inputStringModalOpen}
+        setModalOpen={setInputStringModalOpen}
+        handleApply={handleApplyCoordinates}
       />
-      <div className={"flex flex-col justify-center items-center gap-4"}>
+      <div className={"flex flex-col justify-center items-center"}>
         <label className={"text-white text-2xl"}>
           {inputMethod === "coordinates" ? "Coordinates" : "Gush num"}
         </label>
@@ -265,28 +261,34 @@ const FindGush = ({}: Props) => {
               onChange={(e) => setGushInput(e.target.value)}
             ></input>
             <div className="max-h-24 overflow-auto rounded-md">
-            {gushim.map((item, i) => (
-              <div key={i.toString()}>
-              <GushItem item={item} handleDeleteItem={handleDeleteGush} index={i}/>
-              {i !== gushim.length - 1 && <div className="w-full h-[1px] bg-slate-400"/>}
-              </div>
+              {gushim.map((item, i) => (
+                <div key={i.toString()}>
+                  <GushItem
+                    item={item}
+                    handleDeleteItem={handleDeleteGush}
+                    index={i}
+                  />
+                  {i !== gushim.length - 1 && (
+                    <div className="w-full h-[1px] bg-slate-400" />
+                  )}
+                </div>
               ))}
             </div>
           </>
         ) : (
           <div>
             <div className="max-h-24 overflow-auto">
-            {coordinates.map((coord, index) => {
-              return (
-                <CoordItem
-                  handleChange={handleChange}
-                  handleDeleteItem={handleDeleteCoordinate}
-                  coord={coord}
-                  index={index}
-                  key={index.toString()}
-                />
-              );
-            })}
+              {coordinates.map((coord, index) => {
+                return (
+                  <CoordItem
+                    handleChange={handleChange}
+                    handleDeleteItem={handleDeleteCoordinate}
+                    coord={coord}
+                    index={index}
+                    key={index.toString()}
+                  />
+                );
+              })}
             </div>
             <button
               onClick={handleAddCoordinate}
@@ -297,11 +299,20 @@ const FindGush = ({}: Props) => {
             </button>
           </div>
         )}
-        <p className="text-white">{inputMethod === 'gush' ? "Input one at a time or multiple with a comma between" : "Make sure the first and last coordinate are equal"}</p>
+        <p className="text-white">
+          {inputMethod === "gush"
+            ? "Input one at a time or multiple with a comma between"
+            : "Make sure the first and last coordinate are equal"}
+        </p>
         <div className="flex flex-row gap-3">
-        <ActionButton onPress={handleSearch} label="Search" />
-        <ActionButton onPress={() => handleAddGush(gushInput)} label="Add gush" />
-        {inputMethod === 'coordinates' && <ActionButton onPress={openInputStringModal} label="Input string"/>}
+          <ActionButton onPress={handleSearch} label="Search" />
+          <ActionButton
+            onPress={() => handleAddGush(gushInput)}
+            label="Add gush"
+          />
+          {inputMethod === "coordinates" && (
+            <ActionButton onPress={openInputStringModal} label="Input string" />
+          )}
         </div>
         <button
           onClick={() =>
